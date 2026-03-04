@@ -30,10 +30,7 @@ echo "Building deployment container..."
 docker build -f Dockerfile.deploy -t openclaw-deploy .
 
 echo "Starting deployment container..."
-docker run -it --rm \
-    --network host \
-    --dns 8.8.8.8 \
-    --dns 1.1.1.1 \
+docker run -it --rm --network host \
     -e AWS_PROFILE="$AWS_PROFILE" \
     -v "$(pwd)/infra:/workspace/infra" \
     -v "$HOME/.aws:/root/.aws:ro" \
