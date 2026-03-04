@@ -41,7 +41,7 @@ variable "availability_zone" {
 variable "instance_type" {
   description = "EC2 instance type. t3.small (2 vCPU/2 GiB) is the minimum usable size for OpenClaw."
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "root_volume_size_gb" {
@@ -58,23 +58,29 @@ variable "openclaw_version" {
   default     = "latest"
 }
 
-variable "openclaw_gateway_password" {
-  description = "Password for the OpenClaw gateway WebUI"
+# variable "openclaw_gateway_password" {
+#   description = "Password for the OpenClaw gateway WebUI"
+#   type        = string
+#   sensitive   = true
+# }
+
+# variable "openclaw_ai_api_key" {
+#   description = "AI provider API key (e.g. OpenAI sk-...). Leave empty to configure later via the WebUI."
+#   type        = string
+#   sensitive   = true
+#   default     = ""
+# }
+
+variable "vnc_allowed_cidr" {
+  description = "Source CIDR allowed to reach VNC (port 5900). Set to your public IP as /32."
   type        = string
-  sensitive   = true
+  default     = null
 }
 
-variable "openclaw_ai_api_key" {
-  description = "AI provider API key (e.g. OpenAI sk-...). Leave empty to configure later via the WebUI."
+variable "vnc_password" {
+  description = "Password for the VNC server (min 6 chars, max 8 chars enforced by TigerVNC)."
   type        = string
   sensitive   = true
-  default     = ""
-}
-
-variable "enable_docker_sandbox" {
-  description = "Install Docker and enable per-session sandboxing for non-main sessions. Strongly recommended."
-  type        = bool
-  default     = true
 }
 
 variable "tags" {

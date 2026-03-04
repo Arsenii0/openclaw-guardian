@@ -22,8 +22,16 @@ resource "aws_security_group" "openclaw" {
 }
 
 # ── Inbound ──────────────────────────────────────────────────────────────────
-# No inbound rules. Access is exclusively via AWS SSM Session Manager,
-# which uses outbound HTTPS (443) to the SSM service — no open ports needed.
+# Allow VNC for the GUI setup (TODO ArsenP)
+
+resource "aws_vpc_security_group_ingress_rule" "vnc" {
+  security_group_id = aws_security_group.openclaw.id
+  description       = "VNC from allowed IP"
+  from_port         = 5900
+  to_port           = 5900
+  ip_protocol       = "tcp"
+  cidr_ipv4         = var.vnc_allowed_cidr
+}
 
 # ── Outbound ─────────────────────────────────────────────────────────────────
 

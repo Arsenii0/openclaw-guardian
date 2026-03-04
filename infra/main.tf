@@ -27,7 +27,7 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# Ideally, it should be private subnet. Made it public to save on NAT
+# ToDo ArsenP: in production make it private subnet with additional NAT gateway for outbound access
 resource "aws_vpc" "openclaw" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true

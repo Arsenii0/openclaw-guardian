@@ -54,9 +54,10 @@ resource "aws_instance" "openclaw" {
   user_data = templatefile("${path.module}/user_data.sh", {
     name_prefix           = var.name_prefix
     openclaw_version      = var.openclaw_version
-    enable_docker_sandbox = tostring(var.enable_docker_sandbox)
-    gateway_password      = var.openclaw_gateway_password
-    ai_api_key            = var.openclaw_ai_api_key
+    vnc_password          = var.vnc_password
+    vnc_allowed_cidr      = var.vnc_allowed_cidr
+    # gateway_password      = var.openclaw_gateway_password
+    # ai_api_key            = var.openclaw_ai_api_key
   })
 
   tags = merge(var.tags, { Name = "${var.name_prefix}" })

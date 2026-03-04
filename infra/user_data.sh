@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # OpenClaw bootstrap — Ubuntu 24.04 LTS
-#
-# Terraform templatefile() variables:
-#   openclaw_version      – npm tag/version  (e.g. "latest", "2026.3.2")
-#   gateway_password      – OpenClaw gateway auth password
-#   ai_api_key            – AI provider API key (may be empty)
-#   enable_docker_sandbox – "true"/"false"
-# ─────────────────────────────────────────────────────────────────────────────
 
-set -euo pipefail
-exec > >(tee /var/log/openclaw-userdata.log | logger -t openclaw-bootstrap) 2>&1
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # PART 1 — SECURITY HARDENING
-# Everything in this section is standard Linux/AWS hardening.
-# None of it is required or mentioned by the OpenClaw docs.
 # ═════════════════════════════════════════════════════════════════════════════
 
 echo "=== [SECURITY 1/4] System update ==="
@@ -49,15 +38,12 @@ sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config 2>/dev/n
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
+ufw allow from ${vnc_allowed_cidr} to any port 5900 proto tcp comment "VNC"
 ufw --force enable
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "=== [SECURITY 3/4] Install Docker from official repo ==="
 
-# Docker is a functional requirement when sandbox mode is enabled (see Part 2).
-# Installing from the official Docker apt repo rather than the Ubuntu snap is a
-# security/reliability choice — not specified by the OpenClaw docs.
-%{ if enable_docker_sandbox == "true" }
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
   | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -73,24 +59,17 @@ apt-get update -y
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
 systemctl enable docker
 systemctl start  docker
-%{ else }
-echo "Docker sandbox disabled – skipping Docker install."
-%{ endif }
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "=== [SECURITY 4/4] Create dedicated system user ==="
+# echo "=== [SECURITY 4/4] Create dedicated system user ==="
 
-# Run OpenClaw as a dedicated system user with no login shell, not as root
-useradd --system --create-home --shell /bin/bash openclaw
-%{ if enable_docker_sandbox == "true" }
-usermod -aG docker openclaw
-%{ endif }
+# # Run OpenClaw as a dedicated system user with no login shell, not as root
+# useradd --system --create-home --shell /bin/bash openclaw
+# usermod -aG docker openclaw
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # PART 2 — OPENCLAW SETUP
-# Everything in this section follows the OpenClaw README / docs directly.
-# Refs: https://github.com/openclaw/openclaw
 # ═════════════════════════════════════════════════════════════════════════════
 
 echo "=== [OPENCLAW 1/3] Install Node.js 22 LTS ==="
@@ -110,110 +89,76 @@ echo "=== [OPENCLAW 2/3] Install OpenClaw ==="
 npm install -g "openclaw@${openclaw_version}"
 openclaw --version || true
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PART 3 — DESKTOP + VNC
+# XFCE is used instead of full GNOME — much lighter, fine on t3.medium.
+# TigerVNC is the server; connects on port 5900 (display :1).
+# ═════════════════════════════════════════════════════════════════════════════
+
+echo "=== [DESKTOP 1/2] Install XFCE desktop + TigerVNC ==="
+
+# xubuntu-desktop pulls XFCE + all required display libraries
+# dbus-x11 + xterm are needed for a working VNC session
+apt-get install -y \
+  xubuntu-desktop \
+  tigervnc-standalone-server \
+  tigervnc-common \
+  dbus-x11 \
+  xterm
+
 # ─────────────────────────────────────────────────────────────────────────────
-echo "=== [OPENCLAW 3/3] Write configuration ==="
+echo "=== [DESKTOP 2/2] Configure TigerVNC for ubuntu user ==="
 
-# Secrets injected by Terraform templatefile() at apply time — never echoed to logs
-mkdir -p /etc/openclaw
-chmod 700 /etc/openclaw
+VNC_USER=ubuntu
+VNC_HOME=/home/$VNC_USER
 
-# Quoted heredoc: no shell expansion — special chars in values are safe
-cat > /etc/openclaw/secrets.env <<'SECEOF'
-OPENCLAW_GATEWAY_PASSWORD=${gateway_password}
-%{~ if ai_api_key != "" ~}
-OPENAI_API_KEY=${ai_api_key}
-%{~ endif ~}
-SECEOF
-chmod 600 /etc/openclaw/secrets.env
+mkdir -p "$VNC_HOME/.vnc"
 
-mkdir -p /home/openclaw/.openclaw
-chmod 700 /home/openclaw/.openclaw
+# Set VNC password non-interactively (-f writes the binary passwd file to stdout)
+printf '%s' "${vnc_password}" | vncpasswd -f > "$VNC_HOME/.vnc/passwd"
+chmod 600 "$VNC_HOME/.vnc/passwd"
 
-cat > /home/openclaw/.openclaw/openclaw.json5 <<'CONFIG'
-{
-  gateway: {
-    // Docs: "gateway.bind must stay loopback when Serve/Funnel is enabled"
-    // We always bind loopback — access is via SSM port-forward only.
-    // https://github.com/openclaw/openclaw#tailscale-access-gateway-dashboard
-    bind: "loopback",
+# xstartup: launch XFCE session
+cat > "$VNC_HOME/.vnc/xstartup" <<'XSTARTUP'
+#!/bin/bash
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+exec startxfce4
+XSTARTUP
+chmod +x "$VNC_HOME/.vnc/xstartup"
 
-    auth: {
-      // Docs: "Funnel refuses to start unless gateway.auth.mode: password is set"
-      // Applied as the safe server default even without Tailscale.
-      // https://github.com/openclaw/openclaw#tailscale-access-gateway-dashboard
-      mode: "password",
-    },
-  },
+chown -R "$VNC_USER:$VNC_USER" "$VNC_HOME/.vnc"
 
-  agents: {
-    defaults: {
-      sandbox: {
-        // Docs: "set agents.defaults.sandbox.mode: non-main to run non-main
-        //        sessions (groups/channels) inside per-session Docker sandboxes;
-        //        bash then runs in Docker for those sessions"
-        // https://github.com/openclaw/openclaw#security-model-important
-        mode: "${enable_docker_sandbox == "true" ? "non-main" : "off"}",
-      },
-    },
-  },
-
-  agent: {
-    // Docs: minimal config example — https://github.com/openclaw/openclaw#configuration
-    // Run: openclaw doctor   to verify provider connectivity after first start
-    model: "openai/gpt-4o-mini",
-  },
-}
-CONFIG
-
-chown -R openclaw:openclaw /home/openclaw/.openclaw
-chmod 600 /home/openclaw/.openclaw/openclaw.json5
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# PART 3 — SYSTEMD SERVICE
-#
-# ExecStart comes directly from the OpenClaw docs:
-#   "openclaw gateway --port 18789"
-#   https://github.com/openclaw/openclaw#quick-start-tldr
-# ═════════════════════════════════════════════════════════════════════════════
-
-echo "=== [SERVICE] Register and start openclaw-gateway ==="
-
-cat > /etc/systemd/system/openclaw-gateway.service <<'SERVICE'
+# Systemd service — runs VNC on display :1 (port 5900) as the ubuntu user
+cat > /etc/systemd/system/vncserver@.service <<'VNCSERVICE'
 [Unit]
-Description=OpenClaw Gateway
-After=network-online.target
-Wants=network-online.target
+Description=TigerVNC server on display %i
+After=network.target syslog.target
 
 [Service]
-Type=simple
-User=openclaw
-Group=openclaw
-WorkingDirectory=/home/openclaw
+Type=forking
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu
 
-ExecStart=/usr/bin/openclaw gateway --port 18789
-ExecReload=/bin/kill -HUP $MAINPID
+ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
+ExecStart=/usr/bin/vncserver :%i -geometry 1920x1080 -depth 24 -localhost no
+ExecStop=/usr/bin/vncserver -kill :%i
+
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-SERVICE
+VNCSERVICE
 
 systemctl daemon-reload
-systemctl enable openclaw-gateway
-systemctl start  openclaw-gateway
+systemctl enable vncserver@1
+systemctl start  vncserver@1
 
 echo "=== Bootstrap complete ==="
 echo ""
-echo "Connect via SSM Session Manager:"
-echo "  aws ssm start-session --target INSTANCE_ID"
+echo "VNC connect: <elastic-ip>:5900"
 echo ""
-echo "Port-forward the gateway WebUI to your laptop:"
-echo "  aws ssm start-session --target INSTANCE_ID \\"
-echo "    --document-name AWS-StartPortForwardingSession \\"
-echo "    --parameters 'portNumber=18789,localPortNumber=18789'"
-echo "  # Then open: http://localhost:18789"
-echo ""
-echo "Check OpenClaw health (inside the SSM session):"
-echo "  sudo systemctl status openclaw-gateway"
-echo "  journalctl -u openclaw-gateway -f"
-echo "  sudo -u openclaw openclaw doctor"
+echo "SSM shell:   aws ssm start-session --target INSTANCE_ID --profile personal"
