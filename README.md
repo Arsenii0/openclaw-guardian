@@ -13,8 +13,10 @@ Secure AWS Terraform deployment for OpenClaw.
 openclaw_gateway_password = "TODO_secretmanager1"
 openclaw_ai_api_key       = "TODO_secretmanager2" 
 
-# 2. Run
+# 2. Start the deployment container
 ./deploy.sh
+
+# 3. Inside the deployment container, run Terraform
 terraform init && terraform apply
 ```
 
