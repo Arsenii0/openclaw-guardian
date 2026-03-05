@@ -27,8 +27,8 @@ resource "aws_security_group" "openclaw" {
 resource "aws_vpc_security_group_ingress_rule" "vnc" {
   security_group_id = aws_security_group.openclaw.id
   description       = "VNC from allowed IP"
-  from_port         = 5900
-  to_port           = 5900
+  from_port         = 5901
+  to_port           = 5901
   ip_protocol       = "tcp"
   cidr_ipv4         = var.vnc_allowed_cidr
 }

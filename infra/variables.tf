@@ -72,7 +72,7 @@ variable "openclaw_version" {
 # }
 
 variable "vnc_allowed_cidr" {
-  description = "Source CIDR allowed to reach VNC (port 5900). Set to your public IP as /32."
+  description = "Source CIDR allowed to reach VNC (port 5901). Set to your public IP as /32."
   type        = string
   default     = null
 }

@@ -38,7 +38,7 @@ sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config 2>/dev/n
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow from ${vnc_allowed_cidr} to any port 5900 proto tcp comment "VNC"
+ufw allow from ${vnc_allowed_cidr} to any port 5901 proto tcp comment "VNC"
 ufw --force enable
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -93,19 +93,33 @@ openclaw --version || true
 # ═════════════════════════════════════════════════════════════════════════════
 # PART 3 — DESKTOP + VNC
 # XFCE is used instead of full GNOME — much lighter, fine on t3.medium.
-# TigerVNC is the server; connects on port 5900 (display :1).
+# TigerVNC is the server; connects on port 5901 (display :1).
 # ═════════════════════════════════════════════════════════════════════════════
 
-echo "=== [DESKTOP 1/2] Install XFCE desktop + TigerVNC ==="
+echo "=== [DESKTOP 1/2] Install XFCE desktop + TigerVNC + Firefox ==="
+
+# Pin Mozilla's apt repo BEFORE installing xubuntu-desktop so that apt resolves
+# the firefox dependency to the non-snap deb, not the Ubuntu snap redirect.
+# Snap-based Firefox does not work inside a VNC session (no systemd user session).
+install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
+  | tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" \
+  > /etc/apt/sources.list.d/mozilla.list
+printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' \
+  > /etc/apt/preferences.d/mozilla
+apt-get update -y
 
 # xubuntu-desktop pulls XFCE + all required display libraries
 # dbus-x11 + xterm are needed for a working VNC session
+# firefox resolves to the Mozilla apt deb (not snap) because of the pin above
 apt-get install -y \
   xubuntu-desktop \
   tigervnc-standalone-server \
   tigervnc-common \
   dbus-x11 \
-  xterm
+  xterm \
+  firefox
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "=== [DESKTOP 2/2] Configure TigerVNC for ubuntu user ==="
@@ -130,7 +144,7 @@ chmod +x "$VNC_HOME/.vnc/xstartup"
 
 chown -R "$VNC_USER:$VNC_USER" "$VNC_HOME/.vnc"
 
-# Systemd service — runs VNC on display :1 (port 5900) as the ubuntu user
+# Systemd service — runs VNC on display :1 (port 5901) as the ubuntu user
 cat > /etc/systemd/system/vncserver@.service <<'VNCSERVICE'
 [Unit]
 Description=TigerVNC server on display %i
@@ -159,6 +173,6 @@ systemctl start  vncserver@1
 
 echo "=== Bootstrap complete ==="
 echo ""
-echo "VNC connect: <elastic-ip>:5900"
+echo "VNC connect: <elastic-ip>:5901"
 echo ""
 echo "SSM shell:   aws ssm start-session --target INSTANCE_ID --profile personal"

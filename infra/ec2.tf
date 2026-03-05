@@ -24,7 +24,6 @@ resource "aws_instance" "openclaw" {
   instance_type = var.instance_type
   subnet_id     = aws_subnet.openclaw_public.id
 
-  # No key_name — access is SSM-only (no inbound ports required)
   iam_instance_profile = aws_iam_instance_profile.openclaw_ec2.name
 
   vpc_security_group_ids = [aws_security_group.openclaw.id]
@@ -63,7 +62,7 @@ resource "aws_instance" "openclaw" {
   tags = merge(var.tags, { Name = "${var.name_prefix}" })
 }
 
-# Elastic IP – stable address across stop/start cycles
+# Elastic IP – same IP address across stop/start cycles
 resource "aws_eip" "openclaw" {
   domain   = "vpc"
   instance = aws_instance.openclaw.id
