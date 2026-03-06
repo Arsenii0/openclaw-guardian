@@ -29,9 +29,33 @@ terraform init && terraform apply
 aws ssm start-session --target <instance_id> --region us-west-2
 ```
 
-To connect with VNC use `<elastic-ip>:5900`
+To connect with VNC use `<elastic-ip>:5901`
 
----
+
+## Installation
+Fix OpenClaw after installation in the cloud deployment:
+```
+# 1. Enable persistent user services
+sudo loginctl enable-linger $(whoami)
+
+# 2. Set runtime directory (add to ~/.bashrc for persistence)
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+
+# 3. Now gateway install works
+openclaw gateway install --force
+
+openclaw doctor --repair
+openclaw gateway start
+
+```
+
+Integrate with Telegram:
+```
+<start the bot in telegram>
+openclaw pairing list telegram
+openclaw pairing approve telegram <ID>
+```
+
 
 ## Security notes
 

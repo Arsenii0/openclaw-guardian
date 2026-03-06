@@ -8,16 +8,11 @@
 # PART 1 — SECURITY HARDENING
 # ═════════════════════════════════════════════════════════════════════════════
 
-echo "=== [SECURITY 1/4] System update ==="
-
 # Non-interactive upgrades; upgrade before installing anything new
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y --no-install-recommends
 
-# ufw              – host firewall (deny all inbound, allow all outbound)
-# amazon-ssm-agent – SSM Session Manager replaces inbound SSH entirely;
-#                    port 22 is never opened in the security group
 apt-get install -y --no-install-recommends \
   ca-certificates curl gnupg unzip jq ufw \
   amazon-ssm-agent
@@ -27,7 +22,7 @@ systemctl enable amazon-ssm-agent
 systemctl start  amazon-ssm-agent
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "=== [SECURITY 2/4] OS hardening ==="
+echo "=== OS hardening ==="
 
 # Disable root SSH login (belt-and-suspenders; port 22 is not open anyway)
 sed -i 's/^PermitRootLogin.*/PermitRootLogin no/'  /etc/ssh/sshd_config 2>/dev/null || true
@@ -41,38 +36,11 @@ ufw default allow outgoing
 ufw allow from ${vnc_allowed_cidr} to any port 5901 proto tcp comment "VNC"
 ufw --force enable
 
-# ─────────────────────────────────────────────────────────────────────────────
-echo "=== [SECURITY 3/4] Install Docker from official repo ==="
-
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  > /etc/apt/sources.list.d/docker.list
-
-apt-get update -y
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
-systemctl enable docker
-systemctl start  docker
-
-# ─────────────────────────────────────────────────────────────────────────────
-# echo "=== [SECURITY 4/4] Create dedicated system user ==="
-
-# # Run OpenClaw as a dedicated system user with no login shell, not as root
-# useradd --system --create-home --shell /bin/bash openclaw
-# usermod -aG docker openclaw
-
-
 # ═════════════════════════════════════════════════════════════════════════════
 # PART 2 — OPENCLAW SETUP
 # ═════════════════════════════════════════════════════════════════════════════
 
-echo "=== [OPENCLAW 1/3] Install Node.js 22 LTS ==="
+echo "=== [OPENCLAW 1/2] Install Node.js 22 LTS ==="
 
 # Docs: "Runtime: Node ≥22"
 # https://github.com/openclaw/openclaw#install-recommended
@@ -82,10 +50,8 @@ node --version
 npm --version
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "=== [OPENCLAW 2/3] Install OpenClaw ==="
+echo "=== [OPENCLAW 2/2] Install OpenClaw ==="
 
-# Docs: "npm install -g openclaw@latest"
-# https://github.com/openclaw/openclaw#install-recommended
 npm install -g "openclaw@${openclaw_version}"
 openclaw --version || true
 
@@ -98,8 +64,6 @@ openclaw --version || true
 
 echo "=== [DESKTOP 1/2] Install XFCE desktop + TigerVNC + Firefox ==="
 
-# Pin Mozilla's apt repo BEFORE installing xubuntu-desktop so that apt resolves
-# the firefox dependency to the non-snap deb, not the Ubuntu snap redirect.
 # Snap-based Firefox does not work inside a VNC session (no systemd user session).
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
@@ -110,9 +74,6 @@ printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' \
   > /etc/apt/preferences.d/mozilla
 apt-get update -y
 
-# xubuntu-desktop pulls XFCE + all required display libraries
-# dbus-x11 + xterm are needed for a working VNC session
-# firefox resolves to the Mozilla apt deb (not snap) because of the pin above
 apt-get install -y \
   xubuntu-desktop \
   tigervnc-standalone-server \

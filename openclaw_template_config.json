@@ -1,0 +1,39 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai/gpt-4o-2024-11-20",
+        "fallbacks": ["openai/gpt-4o-mini"]
+      },
+      "models": {
+        "openai/gpt-4o-2024-11-20": {},
+        "openai/gpt-4o-mini": {}
+      },
+      "workspace": "/home/ubuntu/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      }
+    }
+  },
+  "tools": {
+    "profile": "messaging"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "botToken": "SECRET1",
+      "groupPolicy": "open",
+      "streaming": "partial",
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      }
+    }
+  }
+}
