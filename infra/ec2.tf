@@ -55,8 +55,6 @@ resource "aws_instance" "openclaw" {
     openclaw_version      = var.openclaw_version
     vnc_password          = var.vnc_password
     vnc_allowed_cidr      = var.vnc_allowed_cidr
-    # gateway_password      = var.openclaw_gateway_password
-    # ai_api_key            = var.openclaw_ai_api_key
   })
 
   tags = merge(var.tags, { Name = "${var.name_prefix}" })

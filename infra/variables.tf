@@ -58,19 +58,6 @@ variable "openclaw_version" {
   default     = "latest"
 }
 
-# variable "openclaw_gateway_password" {
-#   description = "Password for the OpenClaw gateway WebUI"
-#   type        = string
-#   sensitive   = true
-# }
-
-# variable "openclaw_ai_api_key" {
-#   description = "AI provider API key (e.g. OpenAI sk-...). Leave empty to configure later via the WebUI."
-#   type        = string
-#   sensitive   = true
-#   default     = ""
-# }
-
 variable "vnc_allowed_cidr" {
   description = "Source CIDR allowed to reach VNC (port 5901). Set to your public IP as /32."
   type        = string

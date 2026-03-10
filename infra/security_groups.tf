@@ -1,16 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Security Group strategy
 #
-#  INBOUND  – none. Gateway stays on loopback:18789; access is SSM-only.
-#
-#  OUTBOUND – HTTPS (443) to reach AI provider APIs, Telegram/Discord/WhatsApp,
-#             AWS SSM endpoints, apt mirrors, npm registry, etc.
-#           - HTTP (80) for apt and npm (redirects to HTTPS).
-#           - DNS UDP/TCP 53.
-#           - NTP UDP 123.
-#
 # The OpenClaw gateway WebSocket (18789) is intentionally NOT opened;
-# you reach it via SSM port-forwarding or Tailscale Serve.
 # ─────────────────────────────────────────────────────────────────────────────
 
 resource "aws_security_group" "openclaw" {
