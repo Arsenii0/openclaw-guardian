@@ -54,4 +54,5 @@ openclaw pairing approve telegram <ID>
 
 ## Security notes
 
-TODO ArsenP
+TODO: Bind VNC to localhost and use SSM port-forwarding instead of exposing port 5901 publicly (unencrypted, 8-char password limit).
+TODO: Replace `curl | bash` Node.js install in `user_data.sh` with a distro package or pre-baked AMI to eliminate supply-chain RCE risk.
