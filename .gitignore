@@ -1,0 +1,26 @@
+# Terraform state — never commit real state or plans
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/*.tfplan
+
+# terraform.tfvars holds secrets (gateway password, API keys) — do not commit
+# Commit terraform.tfvars.example instead
+infra/terraform.tfvars
+
+# Crash logs
+infra/crash.log
+infra/crash.*.log
+
+# Override files
+infra/override.tf
+infra/override.tf.json
+infra/*_override.tf
+infra/*_override.tf.json
+
+# OS / editor noise
+.DS_Store
+.idea/
+*.swp
+*.swo
