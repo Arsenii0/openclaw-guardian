@@ -44,3 +44,21 @@ output "iam_role_arn" {
   description = "IAM role ARN attached to the instance"
   value       = aws_iam_role.openclaw_ec2.arn
 }
+
+# ── VNC credentials ───────────────────────────────────────────────────────────
+
+output "vnc_username" {
+  description = "OS user to connect as over VNC"
+  value       = "ubuntu"
+}
+
+output "vnc_password" {
+  description = "Auto-generated VNC password"
+  value       = random_password.vnc.result
+  sensitive   = true
+}
+
+output "vnc_connect" {
+  description = "VNC connection string"
+  value       = "${aws_eip.openclaw.public_ip}:5901"
+}

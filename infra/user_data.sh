@@ -13,12 +13,12 @@ harden_os() {
   apt-get upgrade -y --no-install-recommends
 
   apt-get install -y --no-install-recommends \
-    ca-certificates curl gnupg unzip jq ufw \
-    amazon-ssm-agent
+    ca-certificates curl gnupg unzip jq ufw snapd
 
-  # Enable SSM agent so AWS can open shell sessions without any open ports
-  systemctl enable amazon-ssm-agent
-  systemctl start  amazon-ssm-agent
+  # Install SSM agent via snap (amazon-ssm-agent is not in Ubuntu 24.04 apt repos)
+  snap install amazon-ssm-agent --classic
+  systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent
+  systemctl start  snap.amazon-ssm-agent.amazon-ssm-agent
 
   # Disable root SSH login (belt-and-suspenders; port 22 is not open anyway)
   sed -i 's/^PermitRootLogin.*/PermitRootLogin no/'  /etc/ssh/sshd_config 2>/dev/null || true

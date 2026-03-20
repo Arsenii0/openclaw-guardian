@@ -53,7 +53,7 @@ resource "aws_instance" "openclaw" {
   user_data = templatefile("${path.module}/user_data.sh", {
     name_prefix           = var.name_prefix
     openclaw_version      = var.openclaw_version
-    vnc_password          = var.vnc_password
+    vnc_password          = random_password.vnc.result
     vnc_allowed_cidr      = var.vnc_allowed_cidr
   })
 

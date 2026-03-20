@@ -11,6 +11,9 @@ Secure AWS Terraform deployment for OpenClaw.
 # 1. Start the deployment container
 ./deploy.sh
 
+# 3. Update vnc_allowed_cidr variable (TODO ArsenP: fix hardcode)
+vnc_allowed_cidr = <Source CIDR>
+
 # 2. Inside the deployment container, run Terraform
 terraform init && terraform apply
 ```
