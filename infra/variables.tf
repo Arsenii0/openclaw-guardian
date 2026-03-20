@@ -61,13 +61,7 @@ variable "openclaw_version" {
 variable "vnc_allowed_cidr" {
   description = "Source CIDR allowed to reach VNC (port 5901). Set to your public IP as /32."
   type        = string
-  default     = null
-}
-
-variable "vnc_password" {
-  description = "Password for the VNC server (min 6 chars, max 8 chars enforced by TigerVNC)."
-  type        = string
-  sensitive   = true
+  default     = "38.39.175.45/32" // TODO ArsenP : fix hardcode
 }
 
 variable "tags" {

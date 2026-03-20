@@ -6,6 +6,15 @@ data "aws_partition" "current" {}
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto-generate VNC password (8 chars alphanumeric – TigerVNC max is 8)
+# ─────────────────────────────────────────────────────────────────────────────
+
+resource "random_password" "vnc" {
+  length  = 8
+  special = false
+}
+
 # Latest Ubuntu 24.04 LTS (Noble) HVM/SSD AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
